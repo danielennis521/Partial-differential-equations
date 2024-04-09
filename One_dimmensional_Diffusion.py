@@ -6,16 +6,16 @@ nt = 500    # number of time steps to simulate
 nx = 100    # number of points to simulate
 dt = 0.00001
 
-def k(u, x):
+def k(x):
+    return x
+
+def dk(x):
     return 1.0
 
-def dk(u, x):
-    return 0.0
-
-def populate_matrix(A, u, x, t, dx, nx):
+def populate_matrix(A, x, dx, nx):
     for i in range(nx):
-        d1 = dk(u[i], x[i])*dx - 2.0*k(u[i], x[i])
-        d2 = dk(u[i], x[i])*dx + 2.0*k(u[i], x[i])
+        d1 = dk(x[i])*dx - 2.0*k(x[i])
+        d2 = dk(x[i])*dx + 2.0*k(x[i])
         
         if i == 0:
             A[0][0:4] = [0.0, 0.0, 0.25*d2, 0.0]
@@ -27,10 +27,10 @@ def populate_matrix(A, u, x, t, dx, nx):
             A[2*i][2*i-2:2*i+4] = [-0.25*d1, 0.0, 0.0, 0.0, 0.25*d2, 0.0]
             A[2*i+1][2*i-2:2*i+4] = [-0.5*d1, -0.25*d1, -2.0, 0.0, 0.5*d2, 0.25*d2]
 
-def populate_vector(v, u, x, t, dx, dt, nx):
+def populate_vector(v, u, x, dx, dt, nx):
     for i in range(nx):
-        d1 = dk(u[i], x[i])*dx - 2.0*k(u[i], x[i])
-        d2 = dk(u[i], x[i])*dx + 2.0*k(u[i], x[i])
+        d1 = dk(x[i])*dx - 2.0*k(x[i])
+        d2 = dk(x[i])*dx + 2.0*k(x[i])
         
         if i == 0:
             v[0] = v[1] = (4.0*u[0] - d2*u[1])/dt
@@ -60,10 +60,10 @@ A = np.zeros([2*nx, 2*nx])
 v = np.zeros(2*nx)
 for i in range(nt):
     # set up the matrix for each step of the solution
-    populate_matrix(A, u, x, t, dx, nx)
+    populate_matrix(A, x, dx, nx)
 
     # construct the RHS vector 
-    populate_vector(v, u, x, t, dx, dt, nx)
+    populate_vector(v, u, x, dx, dt, nx)
 
     # approximate the slopes for the RK step
     l = np.zeros(2*nx)
@@ -80,10 +80,10 @@ for i in range(nt):
     
 
     # plot the solution
-    if i % 50 == 0:
-        plt.plot([a] + x.tolist() + [b], [ua]+u.tolist()+[ub], label='t = {}'.format(t))
-        plt.legend()
-        plt.ylim(lim)
-        plt.show()
+    plt.cla()
+    plt.plot([a] + x.tolist() + [b], [ua]+u.tolist()+[ub], label='t = {}'.format(t))
+    plt.legend()
+    plt.ylim(lim)
+    plt.pause(0.01)
 
     t += dt
