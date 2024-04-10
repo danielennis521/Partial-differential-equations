@@ -6,11 +6,21 @@ nt = 500    # number of time steps to simulate
 nx = 50    # number of points to simulate
 dt = 0.0001
 
+# initial data
+u0 = np.array([np.sin(np.pi*2.0*xi/(nx + 1.0)) + np.cos(np.pi*3.0*xi/(nx + 1.0)) for xi in range(1, nx+1)])
+
+a = 0.0
+b = 1.0
+ua = 0.0
+ub = 0.0
+
+# define the diffusion coefficient and its derivative
 def k(x):
-    return 0.1 + x
+    return 0.25 + (x-0.5)**3
 
 def dk(x):
-    return 1.0
+    return 3.0*(x-0.5)**2
+
 
 def populate_matrix(A, x, dx, nx):
     for i in range(nx):
@@ -43,13 +53,6 @@ def populate_vector(v, u, x, dx, dt, nx):
     
 
 
-# initial data
-u0 = np.array([np.sin(np.pi*2.0*xi/(nx + 1.0)) + np.cos(np.pi*3.0*xi/(nx + 1.0)) for xi in range(1, nx+1)])
-
-a = 0.0
-b = 1.0
-ua = 0.0
-ub = 0.0
 u = u0
 dx = (b-a)/(nx+1)
 x = np.array([a + m*dx for m in range(1, nx+1)])
@@ -87,6 +90,8 @@ for i in range(nt):
     
 
     # plot the solution
+    print(u)
+    print(count)
     plt.cla()
     plt.plot([a] + x.tolist() + [b], [ua]+u.tolist()+[ub], label='t = {}'.format(t))
     plt.legend()
