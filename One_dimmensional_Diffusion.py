@@ -3,11 +3,11 @@ import matplotlib.pyplot as plt
 
 # parameters 
 nt = 500    # number of time steps to simulate
-nx = 100    # number of points to simulate
-dt = 0.00001
+nx = 50    # number of points to simulate
+dt = 0.0001
 
 def k(x):
-    return x
+    return 0.1 + x
 
 def dk(x):
     return 1.0
@@ -16,28 +16,30 @@ def populate_matrix(A, x, dx, nx):
     for i in range(nx):
         d1 = dk(x[i])*dx - 2.0*k(x[i])
         d2 = dk(x[i])*dx + 2.0*k(x[i])
+        d = k(x[i])
         
         if i == 0:
             A[0][0:4] = [0.0, 0.0, 0.25*d2, 0.0]
-            A[1][0:4] = [-2.0, 0.0, 0.5*d2, 0.25*d2]
+            A[1][0:4] = [-2.0*d, 0.0, 0.5*d2, 0.25*d2]
         elif i == nx - 1:
             A[-2][-4:] = [-0.25*d1, 0.0, 0.0, 0.0]
-            A[-1][-4:] = [-0.5*d1, -0.25*d1, -2.0, 0.0]
+            A[-1][-4:] = [-0.5*d1, -0.25*d1, -2.0*d, 0.0]
         else:
             A[2*i][2*i-2:2*i+4] = [-0.25*d1, 0.0, 0.0, 0.0, 0.25*d2, 0.0]
-            A[2*i+1][2*i-2:2*i+4] = [-0.5*d1, -0.25*d1, -2.0, 0.0, 0.5*d2, 0.25*d2]
+            A[2*i+1][2*i-2:2*i+4] = [-0.5*d1, -0.25*d1, -2.0*d, 0.0, 0.5*d2, 0.25*d2]
 
 def populate_vector(v, u, x, dx, dt, nx):
     for i in range(nx):
         d1 = dk(x[i])*dx - 2.0*k(x[i])
         d2 = dk(x[i])*dx + 2.0*k(x[i])
+        d = k(x[i])
         
         if i == 0:
-            v[0] = v[1] = (4.0*u[0] - d2*u[1])/dt
+            v[0] = v[1] = (4.0*d*u[0] - d2*u[1])/dt
         elif i == nx - 1:
-            v[-2] = v[-1] = (4.0*u[-1] + d1*u[-2])/dt
+            v[-2] = v[-1] = (4.0*d*u[-1] + d1*u[-2])/dt
         else:
-            v[2*i] = v[2*i+1] = (4.0*u[i] + d1*u[i-1] - d2*u[i+1])/dt
+            v[2*i] = v[2*i+1] = (4.0*d*u[i] + d1*u[i-1] - d2*u[i+1])/dt
     
 
 
@@ -52,7 +54,6 @@ u = u0
 dx = (b-a)/(nx+1)
 x = np.array([a + m*dx for m in range(1, nx+1)])
 lim = [min([ua, ub]+u0.tolist()), max([ua, ub]+u0.tolist())]
-m = -1.0 - 2.0*dx*dx/dt
 t = 0
 
 
@@ -69,9 +70,15 @@ for i in range(nt):
     l = np.zeros(2*nx)
     l_prev = np.zeros(2*nx)
     e = 1.0
-    while(e>1e-9):
+    m = [-k(x[j]) - 2.0*dx*dx/dt for j in range(nx)]
+    count = 0
+    while(e>1e-2):
+        count += 1
         l_prev = l
-        l = (v - np.dot(A, l))/m
+        l = v + np.dot(A, l)
+        for j in range(nx):
+            l[2*j] /= m[j]
+            l[2*j+1] /= m[j]
         e = np.linalg.norm(l - l_prev)
 
     # update the solution
@@ -84,6 +91,6 @@ for i in range(nt):
     plt.plot([a] + x.tolist() + [b], [ua]+u.tolist()+[ub], label='t = {}'.format(t))
     plt.legend()
     plt.ylim(lim)
-    plt.pause(0.01)
+    plt.pause(0.0001)
 
     t += dt
