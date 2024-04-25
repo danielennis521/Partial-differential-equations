@@ -1,6 +1,8 @@
 import numpy as np
 import scipy.linalg as la
+import scipy.sparse as sp
 import matplotlib.pyplot as plt
+
 
 def Gram_Schmidt_Orthonormalization(n, a=-1, b=1):
     # Generate the n orthogonal polynomials using the Gram-Schmidt orthonormalization process
@@ -35,10 +37,6 @@ def populate_matrix(A, x, dt, nx, k, dk, L, dL, ddL):
     for i in range(nx):
         for j in range(nx):
             A[i][j] = np.polyval(L[j], x[i]) - dt*[np.polyval(dL[j], x[i])*dk[i] + np.polyval(ddL[j], x[i])*k[i]]
-
-def conjugate_gradient(A, u):
-
-    return u
             
 
 def diffusion_sim(nt, nx, dt, u0, a, b, ua, ub, k, dk):
@@ -56,7 +54,7 @@ def diffusion_sim(nt, nx, dt, u0, a, b, ua, ub, k, dk):
 
     for i in range(nt):
 
-        u = congugate_gradient(A, u)
+        u = sp.linalg.gmres(A, u)
 
         # plot the solution
         plt.cla()
