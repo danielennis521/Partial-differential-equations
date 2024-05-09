@@ -41,11 +41,13 @@ def diffusion_sim(nt, nx, dt, u0, a, b, ua, ub, k, dk):
     # be careful about the number of collocation points used, collocation generally requires much fewer points than finite differences
 
     A = np.zeros([nx, nx])
-    lim = [min([ua, ub]+u0.tolist()), max([ua, ub]+u0.tolist())]
+    lim = [-1, 1]
     t = 0
-
+    
     L, x = Gram_Schmidt_Orthonormalization(nx+1)
-    u = [np.sin(i) for i in x]
+    w = np.array([[p.polyval(x[i], L[j]) for j in range(nx)] for i in range(nx)])
+
+    u = [np.sin(np.pi*i) for i in x]
     dL = [[0]] + [np.polyder(poly) for poly in L[1:]]
     ddL = [[0], [0]] + [np.polyder(poly) for poly in dL[2:]]
 
@@ -53,8 +55,11 @@ def diffusion_sim(nt, nx, dt, u0, a, b, ua, ub, k, dk):
 
     for i in range(nt):
 
-        u = sp.linalg.gmres(A, u)[0]
-
+        # solve for the collocation coefficients
+        c = sp.linalg.gmres(A, u)[0]
+        # reconstruct the solution
+        u = np.dot(w, c)
+        
         # plot the solution
         plt.cla()
         print(u)
