@@ -22,51 +22,70 @@ def Gram_Schmidt_Orthonormalization(n, a=-1, b=1):
             c = (p.polyval(a, num) - p.polyval(b, num))/(p.polyval(b, den) - p.polyval(a, den))
             L[-1] = p.polyadd(L[-1], p.polymul([c], L[i-2]))    
  
-    # find the roots of the highest order polynomial (these will be the collocation points)
-    x = p.polyroots(L[-1])
-    # return the Legendre polynomials and the collocation points
-    return L, x
+    return L
 
 
-def populate_matrix(A, x, dt, nx, k, dk, L, dL, ddL):
+def Chebyshev_Polynomials(n, a=-1, b=1):
+    # Generate the n Chebyshev polynomials
+    
+    L = [[1]]
+    L.append([0, 1])
+    for i in range(2, n):
+        L.append(p.polysub(p.polymul([0, 2], L[i-1]), L[i-2]))
+    
+    return L
+
+
+def populate_matrix(M, N, x, ua, ub, nx, k, dk, L, dL, ddL):
 
     for i in range(nx):
         for j in range(nx):
-            A[i][j] = p.polyval(x[i], L[j]) - dt*(p.polyval(x[i], dL[j])*dk(x[i]) + p.polyval(x[i], ddL[j])*k(x[i]))
-            
+            if i == 0:
+                N[i][j] = ua
+            elif i == nx-1:
+                N[i][j] = ub
+            else:
+                N[i][j] = (p.polyval(x[i], dL[j])*dk(x[i]) + p.polyval(x[i], ddL[j])*k(x[i]))
 
-def diffusion_sim(nt, nx, dt, u0, a, b, ua, ub, k, dk):
+            M[i][j] = p.polyval(x[i], L[j])
+                        
+
+def diffusion_sim(nt, nx, dt, u0, a, b, k, dk, ua=0, ub=0):
     # Simulate the diffusion equation using the collocation method
     # note that we use the legendra polynomials as basis functions and the roots of the largest one as collocation points
     # be careful about the number of collocation points used, collocation generally requires much fewer points than finite differences
 
-    A = np.zeros([nx, nx])
+    M = np.zeros([nx, nx])
+    N = np.zeros([nx, nx])
     lim = [-1, 1]
     t = 0
     
-    L, x = Gram_Schmidt_Orthonormalization(nx+1)
+    #L = Gram_Schmidt_Orthonormalization(nx)
+    L = Chebyshev_Polynomials(nx)
+    x = [a + (b-a)/(nx-1)*i for i in range(nx)]
     w = np.array([[p.polyval(x[i], L[j]) for j in range(nx)] for i in range(nx)])
 
-    u = [np.sin(np.pi*i) for i in x]
+    u = [ua] + [np.sin(np.pi*i) for i in x[1:-1]] + [ub]
     dL = [[0]] + [np.polyder(poly) for poly in L[1:]]
     ddL = [[0], [0]] + [np.polyder(poly) for poly in dL[2:]]
 
-    populate_matrix(A, x, dt, nx, k, dk, L, dL, ddL)
+    populate_matrix(M, N, x, ua, ub, nx, k, dk, L, dL, ddL)
 
     for i in range(nt):
 
         # solve for the collocation coefficients
-        c = sp.linalg.gmres(A, u)[0]
+        a = sp.linalg.gmres(M+dt*N, u)[0]
         # reconstruct the solution
-        u = np.dot(w, c)
+        u = np.dot(M, a)
         
         # plot the solution
-        plt.cla()
-        print(u)
-        plt.plot([a] + list(x) + [b], [ua] + u.tolist() + [ub], label='t = {}'.format(t))
-        plt.legend()
-        plt.ylim(lim)
-        plt.pause(0.01)
+        #if i % 100 == 0:
+        if True:
+            plt.cla()
+            plt.plot(list(x), u.tolist(), label='t = {}'.format(t))
+            plt.legend()
+            plt.ylim(lim)
+            plt.pause(0.03)
 
         t += dt
         
