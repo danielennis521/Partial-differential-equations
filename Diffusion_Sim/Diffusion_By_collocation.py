@@ -57,14 +57,14 @@ def rk4_step(A, c, dt):
     k2 = A.dot(c + 0.5*dt*k1)
     k3 = A.dot(c + 0.5*dt*k2)
     k4 = A.dot(c + dt*k3)
-    return c - dt*(k1 + 2*k2 + 2*k3 + k4)/6 
+    return c + dt*(k1 + 2*k2 + 2*k3 + k4)/6 
 
 
 def diffusion_sim(nt, nx, dt, u0, a=-1, b=1, ua=0, ub=0):
 
     x = [b] + [np.cos((2*i+1)*np.pi/(2*(nx-2))) for i in range(nx-2)] + [a]
     x.reverse()
-    print(x)
+
     u = [ua] + [u0(x[i]) for i in range(1, nx-1)] + [ub]
 
     T = Chebyshev_Polynomials(nx, a, b)
@@ -74,17 +74,18 @@ def diffusion_sim(nt, nx, dt, u0, a=-1, b=1, ua=0, ub=0):
     A, B = generate_matrix(nx, x, T, ddT, dt, ua, ub)
     c = la.solve(A, u)
 
-    #B = np.dot(la.inv(A),B)
+    B = np.dot(la.inv(A),B)
     lim = [min(u), max(u)]
-    print(B)
+
     for i in range(nt):
-        if i % 1000 == 0:
+        if i % 250 == 0:
             y = np.linspace(a, b, 100)
             z = [np.sum([c[j]*p.polyval(y[i], T[j]) for j in range(nx)]) for i in range(100)]
             plt.cla()
             plt.ylim(lim)
-            plt.plot(y, z)
+            plt.plot(y, z, 'b')
             plt.plot(x, u, 'ro')
+            plt.plot(x, u, 'r')
             plt.pause(0.1)
 
         c = rk4_step(B, c, dt)
@@ -96,4 +97,10 @@ def diffusion_sim(nt, nx, dt, u0, a=-1, b=1, ua=0, ub=0):
 def u0(x):
     return x
 
-diffusion_sim(1000000, 7, 0.000001, u0, -1, 1, 0, 0)
+def u01(x):
+    if np.abs(x) >= 1.0:
+        return 0
+    else:
+        return np.exp(-1/(1-x**2))
+
+diffusion_sim(int(1e7), 9, 1e-6, u0, -1, 1, 0, 0)
