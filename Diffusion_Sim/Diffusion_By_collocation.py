@@ -35,17 +35,19 @@ def Chebyshev_Polynomials(n, a=-1, b=1):
     return L
 
 
-def generate_matrix(n, x, L, dL, dt, ua, ub):
+def generate_matrix(n, x, L, dL, ddL, dt, k, dk, ua, ub):
     A = np.zeros((n, n))
     B = np.zeros((n, n))
     for i in range(n):
         for j in range(n):
-            if i==0:
+            if i==0 & j==0:
                 B[i][j] = ua
-            elif i==n-1:
+            elif i==n-1 & j==n-1:
                 B[i][j] = ub
+            elif bool(i%(n-1)) != bool(j%(n-1)):
+                B[i, j] = 0
             else:
-                B[i, j] = p.polyval(x[i], dL[j])
+                B[i, j] = k(x[i])*p.polyval(x[i], ddL[j]) + dk(x[i])*p.polyval(x[i], dL[j])
 
             A[i, j] = p.polyval(x[i], L[j])
     
@@ -60,7 +62,7 @@ def rk4_step(A, c, dt):
     return c + dt*(k1 + 2*k2 + 2*k3 + k4)/6 
 
 
-def diffusion_sim(nt, nx, dt, u0, a=-1, b=1, ua=0, ub=0):
+def diffusion_sim(k, dk, nt, nx, dt, u0, a=-1, b=1, ua=0, ub=0):
 
     x = [b] + [np.cos((2*i+1)*np.pi/(2*(nx-2))) for i in range(nx-2)] + [a]
     x.reverse()
@@ -68,10 +70,11 @@ def diffusion_sim(nt, nx, dt, u0, a=-1, b=1, ua=0, ub=0):
     u = [ua] + [u0(x[i]) for i in range(1, nx-1)] + [ub]
 
     T = Chebyshev_Polynomials(nx, a, b)
-    ddT = [p.polyder(p.polyder(T[i])) for i in range(nx)]
+    dT = [p.polyder(T[i]) for i in range(nx)]
+    ddT = [p.polyder(dT[i]) for i in range(nx)]
 
     # Generate the matrices
-    A, B = generate_matrix(nx, x, T, ddT, dt, ua, ub)
+    A, B = generate_matrix(nx, x, T, dT, ddT, dt, k, dk, ua, ub)
     c = la.solve(A, u)
 
     B = np.dot(la.inv(A),B)
@@ -95,7 +98,7 @@ def diffusion_sim(nt, nx, dt, u0, a=-1, b=1, ua=0, ub=0):
         
 
 def u0(x):
-    return x
+    return np.sin(np.pi*x)
 
 def u01(x):
     if np.abs(x) >= 1.0:
@@ -103,4 +106,11 @@ def u01(x):
     else:
         return np.exp(-1/(1-x**2))
 
-diffusion_sim(int(1e7), 9, 1e-6, u0, -1, 1, 0, 0)
+def k(x):
+    return x + 1.3
+
+def dk(x):
+    return 1.0
+
+
+diffusion_sim(k, dk, int(1e7), 9, 1e-6, u0, -1, 1, 0, 0)
