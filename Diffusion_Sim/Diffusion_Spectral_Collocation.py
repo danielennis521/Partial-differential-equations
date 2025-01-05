@@ -35,13 +35,12 @@ def Chebyshev_Polynomials(n, a=-1, b=1):
 
 
 class Diffusion_sim():
-    def __init__(self, f, k, dk, u0, n, dt, a, b, ua, ub,
-                 bound_type='Dirichlet', order=2, stepping='foreward'):
+    def __init__(self, f, k, dk, u0, n, dt, a, b,
+                 bound_type='Dirichlet', stepping='foreward'):
         
         self.f = f
         self.n = n
         self.dt = dt
-        self.boundary = [ua, ub]
         self.bound_type = bound_type
         self.stepping = stepping
         self.k = k
@@ -63,67 +62,34 @@ class Diffusion_sim():
 
     
     def generate_matrix(self):
-        self.M = np.zeros([self.n, self.n])
-        self.N = np.zeros([self.n, self.n])
-        
-        # require the approximation to solve the pde at the interior nodes
+        A = np.zeros((self.n, self.n))
+        B = np.zeros((self.n, self.n))
         for i in range(self.n):
             for j in range(self.n):
-
-                self.N[i, j] = p.polyval(self.x[i], self.L[j])
-
-                if i==0 or i==self.n-1:
-                    continue
+                if bool(i%(self.n-1)) != bool(j%(self.n-1)):
+                    B[i, j] = 0
                 else:
-                    t1 = self.dk(self.x[i]) * p.polyval(self.x[i], self.dL[j])
-                    t2 = self.k(self.x[i]) * p.polyval(self.x[i], self.ddL[j])
-                    self.M[i, j] = t1 + t2
+                    t1 = k(self.x[i])*p.polyval(self.x[i], self.ddL[j])
+                    t2 =  dk(self.x[i])*p.polyval(self.x[i], self.dL[j])
+                    B[i, j] = t1 + t2
+                A[i, j] = p.polyval(self.x[i], self.L[j])
 
-        # enforce the boundary conditions
-        self.b = np.zeros(self.n)
-        self.b[0] = self.boundary[0]
-        self.b[-1] = self.boundary[1]
-
-        self.c = la.solve(self.N, self.u)
-        self.A = np.dot(la.inv(self.N), self.M)
-        self.b = np.dot(la.inv(self.N), self.b)
+        self.c = la.solve(A, self.u)
+        self.A = np.dot(la.inv(A),B)
 
 
     def efd_step(self):
-        self.c += self.dt * (self.A.dot(self.c) + self.b)
+        self.c += self.dt * (self.A.dot(self.c))
+
+
+    def rk4_step(self):
+        k1 = self.A.dot(self.c)
+        k2 = self.A.dot(self.c + self.dt*k1/2)
+        k3 = self.A.dot(self.c + self.dt*k2/2)
+        k4 = self.A.dot(self.c + self.dt*k3)
+
+        self.c += self.dt*(k1 + 2*k2 + 2*k3 + k4)/6
 
 
     def eval(self, x):
         return np.sum([self.c[i] * p.polyval(x, self.L[i]) for i in range(self.n)])
-
-
-
-
-def f(x):
-    return 0
-
-def k(x):
-    return 1
-
-def dk(x):
-    return 0
-
-def u0(x):
-    return np.sin(np.pi*x)
-
-
-
-np.set_printoptions(precision=2, suppress=True)
-test = Diffusion_sim(f=f, k=k, dk=dk, u0=u0, n=6,
-                     dt=0.001, a=-1, b=1, ua=0, ub=1)
-
-#lim = [min(test.u), max(test.u)]
-lim = [-1, 1]
-x = np.linspace(-1, 1.01, 100)
-
-for i in range(200):
-    plt.plot(x, [test.eval(t) for t in x])
-    plt.ylim(lim)
-    plt.pause(0.1)
-    plt.cla()
-    test.efd_step()
