@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import solvers.basic_heat_fd as bh
+import solvers.misc as m
 import solvers.nonlinear_heat_fd as nh
 
 
@@ -119,4 +120,53 @@ def heat_compare_with_curvature_gif(u0, a, b, dt, nx, nt, k, dk, ddk, filename='
     # output:
     # creates a gif with two plots one of the evolution of the two heat equations
     # as well as one with the curvatures of the two heat equations
-    return
+
+    x = np.linspace(a, b, nx+2, endpoint=True)
+    u = np.array([u0(t) for t in x[1:-1]])
+    t = 0.0
+    baseline = np.array([u0(t) for t in x[1:-1]])
+    
+    dx = x[1] - x[0]
+    c = dt/dx**2
+
+    A = bh.difference_matrix(nx, c)
+
+    upper_bound = max(u) * 1.1
+    lower_bound = min(u) * 1.1
+    upper_bound_c = max(m.curvature(u, dx)) * 1.25
+    lower_bound_c = min(m.curvature(u, dx)) * 1.25
+
+    fig, ax = plt.subplots(ncols=1, nrows=2)
+
+    def update_plot(frame):
+        nonlocal u, t, baseline
+        for i in range(3):
+            J = nh.generate_jacobian(u, c, k, dk, ddk)
+            u = nh.newton_step(u, J, c, k, dk)
+            baseline = bh.implicit_step(A, baseline, c)
+            t += dt
+
+        curv_baseline = m.curvature([0] + list(baseline) + [0], dx)
+        curv_nonlin = m.curvature([0] + list(u) + [0], dx)
+
+        time_label = str(np.round(t, 5))
+
+        ax[0].clear()
+        ax[0].set_ylim(bottom=lower_bound, top=upper_bound)
+        ax[0].plot(x, [0] + list(u) + [0], color='b', label='nonlinear: k=0.5/(1 + u^2)')
+        ax[0].plot(x, [0] + list(baseline) + [0], color='r', label='linear: k=1')
+        ax[0].set_title('Solution')
+        ax[0].legend()
+
+        ax[1].clear()
+        ax[1].set_ylim(bottom=lower_bound_c, top=upper_bound_c)
+        ax[1].plot(x, curv_nonlin, color='b')
+        ax[1].plot(x, curv_baseline, color='r')
+        ax[1].set_title('Curvature')
+        
+        fig.suptitle('Time={}'.format(time_label))
+        plt.tight_layout()
+
+    ani = FuncAnimation(fig, update_plot, frames=nt, repeat=False)
+
+    ani.save(filename=filename, writer='pillow', fps=60)
