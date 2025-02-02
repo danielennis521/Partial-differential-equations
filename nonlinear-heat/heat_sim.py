@@ -1,6 +1,7 @@
 import numpy as np
 import solvers.nonlinear_heat_fd as nh
 import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
 
 
 class heat_sim():
@@ -27,9 +28,10 @@ class heat_sim():
         self.ddk = []
         self.dx = []
         self.labels = []
+        self.colors = []
 
 
-    def add_sim(self, u0, k, dk, ddk, nx, label=''):
+    def add_sim(self, u0, k, dk, ddk, nx, label='', color='random'):
         # inputs: 
         # u0: a function specifying the initial distribution of the data
         # k: the function specifying the thermal diffusivity
@@ -47,6 +49,11 @@ class heat_sim():
         self.dk.append(dk)
         self.ddk.append(ddk)
         self.labels.append(label)
+
+        if color=='random':
+            self.colors.append(tuple(np.random.rand(3)))
+        else:
+            self.colors.append(color)
 
 
     def step(self):
@@ -79,7 +86,7 @@ class heat_sim():
                     solution = [self.boundary_conditions[0]] + list(self.u[i]) \
                                 + [self.boundary_conditions[1]]
 
-                    ax.plot(self.x[i], solution, label=self.labels[i])
+                    ax.plot(self.x[i], solution, label=self.labels[i], color=self.colors[i])
 
                 
                 # figure formating
@@ -92,3 +99,41 @@ class heat_sim():
                 plt.cla()
         
             self.step()
+
+    
+    def create_gif(self, n, label=False, filename='heat_sim_animation.gif'):
+        # inputs:
+        # n: number of time steps to simulate
+        # filename: name for the gif to be saved under, should end in .gif
+        # outputs:
+        # Saves the animation of the solutions as a gif in the same directory as the heat_sim.py file
+    
+        upper_bound = np.max(self.u) * 1.1
+        lower_bound= np.min(self.u) * 1.1
+        fig, ax = plt.subplots()
+
+        def update_plot(frame):
+            nonlocal self
+
+            ax.clear()
+            # plot each solution curve
+            for i in range(len(self.u)):
+                solution = [self.boundary_conditions[0]] + list(self.u[i]) \
+                            + [self.boundary_conditions[1]]
+
+                ax.plot(self.x[i], solution, label=self.labels[i], color=self.colors[i])
+
+            
+            # figure formating
+            if label:
+                ax.legend()            
+            time_label = str(np.round(self.t, 5))
+            ax.set_ylim(top=upper_bound, bottom=lower_bound)
+            ax.set_title('Time={}'.format(time_label))
+            
+        
+            for i in range(3):
+                self.step()
+
+        ani = FuncAnimation(fig, update_plot, frames=n, repeat=False)
+        ani.save(filename=filename, writer='pillow', fps=60)
