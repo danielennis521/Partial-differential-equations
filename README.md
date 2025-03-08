@@ -4,7 +4,7 @@ that make it easy to run and view multiple simulations at the same time.
 
 
 # Nonlinear-Heat
-below is an animation of the nonlinear heat transfer variant: $$u_{t} = (\alpha/(\alpha + u^2)) * u_{xx}$$
+below is an animation of the nonlinear heat transfer variant: $$\frac{\partial u}{\partial t} = \frac{\partial}{\partial x}[(\alpha/(\alpha + u^2)) * \frac{\partial u}{\partial x}]$$
 with $$\alpha$$ ranging from 0.5 to 3. As $$\alpha$$ increases this equations becomes more like normal heat transfer (blue line below)
 while for smaller values of a the initial evolution of the solution differs greatly from the normal behavior.
 
