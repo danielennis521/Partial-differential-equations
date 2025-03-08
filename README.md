@@ -4,8 +4,8 @@ that make it easy to run and view multiple simulations at the same time.
 
 
 # Nonlinear-Heat
-below is an animation of the nonlinear heat transfer variant: $$\frac{\partial u}{\partial t} = \frac{\partial}{\partial x}[(\alpha/(\alpha + u^2)) * \frac{\partial u}{\partial x}]$$
-with $$\alpha$$ ranging from 0.5 to 3. As $$\alpha$$ increases this equations becomes more like normal heat transfer (blue line below)
+below is an animation of the nonlinear heat transfer variant: $$\frac{\partial u}{\partial t} = \frac{\partial}{\partial x}[\frac{\alpha}{\alpha + u^2} * \frac{\partial u}{\partial x}]$$
+with $$\alpha$$ ranging from 0.5 to 3. As $$\alpha$$ increases this equations becomes more like the standard heat equation (blue line below)
 while for smaller values of a the initial evolution of the solution differs greatly from the normal behavior.
 
 ![Alt Text](https://github.com/danielennis521/Partial-differential-equations/blob/main/nonlinear-heat/gifs/quadratic_limit_behavior.gif)
